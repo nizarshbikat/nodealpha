@@ -85,11 +85,11 @@ const svgElement = document.querySelector('svg');
         svgElement.insertBefore(defs, svgElement.firstChild);
     }
 
-const bottomContainer = document.getElementById('bottomContainer');
+    const bottomContainer = document.getElementById('bottomContainer');
     for (let i = 1; i <= 52; i++) {
         const icon = document.createElement('img');
-        icon.src = `icon/Icon${i}.png`;
-        icon.alt = `Icon${i}`;
+        icon.src = `icon/icon${i}.png`;
+        icon.alt = `icon${i}`;
         icon.draggable = true;
         icon.addEventListener('dragstart', function(event) {
             event.dataTransfer.setData('text/plain', icon.src);
@@ -4969,7 +4969,4 @@ function toggleLockMove() {
 
     closeContextMenu();
 }
-
-
-
 
