@@ -88,7 +88,7 @@ const svgElement = document.querySelector('svg');
     const bottomContainer = document.getElementById('bottomContainer');
     for (let i = 1; i <= 52; i++) {
         const icon = document.createElement('img');
-        icon.src = `icon/icon${i}.png`;
+        icon.src = `Icon/icon${i}.png`;
         icon.alt = `icon${i}`;
         icon.draggable = true;
         icon.addEventListener('dragstart', function(event) {
@@ -4969,4 +4969,5 @@ function toggleLockMove() {
 
     closeContextMenu();
 }
+
 
