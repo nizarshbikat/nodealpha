@@ -85,11 +85,11 @@ const svgElement = document.querySelector('svg');
         svgElement.insertBefore(defs, svgElement.firstChild);
     }
 
-    const bottomContainer = document.getElementById('bottomContainer');
+const bottomContainer = document.getElementById('bottomContainer');
     for (let i = 1; i <= 52; i++) {
         const icon = document.createElement('img');
-        icon.src = `Icon/icon${i}.png`;
-        icon.alt = `icon${i}`;
+        icon.src = `icon/Icon${i}.png`;
+        icon.alt = `Icon${i}`;
         icon.draggable = true;
         icon.addEventListener('dragstart', function(event) {
             event.dataTransfer.setData('text/plain', icon.src);
@@ -342,7 +342,7 @@ const node1 = new joint.shapes.standard.Image({
     position: { x: 50, y: 50 },
     size: { width: 60, height: 60 },
     attrs: {
-        image: { 'xlink:href': 'path/to/Icon.png', width: 60, height: 60 },
+        image: { 'xlink:href': 'path/to/icon.png', width: 60, height: 60 },
         label: { text: 'Node 1', fill: '#000000', refX: '50%', refY: -10, textAnchor: 'middle', yAlignment: 'middle' }
     },
     data: {
@@ -4969,6 +4969,7 @@ function toggleLockMove() {
 
     closeContextMenu();
 }
+
 
 
 
