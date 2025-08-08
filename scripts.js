@@ -342,7 +342,7 @@ const node1 = new joint.shapes.standard.Image({
     position: { x: 50, y: 50 },
     size: { width: 60, height: 60 },
     attrs: {
-        image: { 'xlink:href': 'path/to/icon.png', width: 60, height: 60 },
+        image: { 'xlink:href': 'path/to/Icon.png', width: 60, height: 60 },
         label: { text: 'Node 1', fill: '#000000', refX: '50%', refY: -10, textAnchor: 'middle', yAlignment: 'middle' }
     },
     data: {
@@ -4969,5 +4969,6 @@ function toggleLockMove() {
 
     closeContextMenu();
 }
+
 
 
