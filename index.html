@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NODEα</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jointjs/3.4.4/joint.min.css" />
+
+</head>
+
+<div id="canvasLabelBox" contenteditable="true" style="
+  position: fixed;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff3cd;
+  color: #333;
+  padding: 5px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 14px;
+  display: none;
+  z-index: 9999;
+"></div>
+
+<body>
+<input type="color" id="colorPicker" style="display:none;" onchange="handleDrawnLineColorChange(event)">
+<input type="color" id="pathColorPicker" style="display:none;" onchange="handlePathLineColorChange(event)">
+<input type="color" id="nodeColorPicker" style="display: none;" onchange="applyNodeColorChange(event)">
+
+    <div class="toolbar" id="toolbar">
+        <img src="Title.png" alt="NODEα" class="toolbar-title">
+        <div class="vertical-line"></div>
+        <div class="button" id="instructionsButton">Instructions</div>
+        <div class="breadcrumb-container">
+        <span class="breadcrumb-arrow" id="breadcrumbLeftArrow">&#9664;</span>
+        <div id="canvasBreadcrumb" class="breadcrumb"></div>
+        <span class="breadcrumb-arrow" id="breadcrumbRightArrow">&#9654;</span>
+        </div>
+        <div class="controls">
+        </div>
+        <div id="backButton" class="back-button"></div>
+        <button id="sensitivityButton" class="button">Sensitivity</button>
+        <div class="button" id="hierarchicalDiagramButton">Hierarchy</div>
+        <div class="button" onclick="saveGraph()" id="saveGraphButton">Save Graph</div>
+        <div class="button" onclick="document.getElementById('fileUpload').click()">Upload Graph</div>
+        <div class="button" onclick="resetGraphAndSettings()">Reset</div>
+        <button id="statsButton" class="button">Stats</button>
+<div id="searchContainer" style="display: flex; align-items: center; gap: 8px; margin: 10px 0;">
+  <input type="text" id="searchInput" placeholder="Search for node or function" class="form-control" style="
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    width: 200px;
+  ">
+  <button onclick="performSearch()" class="button" style="
+    padding: 6px 14px;
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+  " onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#007BFF'">
+    🔍 Search
+  </button>
+</div>
+
+<div class="button" id="settingsButton" onclick="toggleSettingsMenu()">Settings</div>
+        <input type="file" id="fileUpload" style="display: none;" onchange="uploadGraph(event)" accept=".json">
+        <div class="settings-menu" id="settingsMenu" style="display: none;">
+            <div class="settings-controls">
+                <label for="backgroundColorPicker">Canvas Background Color</label>
+                <input type="color" id="backgroundColorPicker" onchange="changeCanvasBackgroundColor(event)">
+                <input type="file" id="backgroundImageUpload" accept="image/*" onchange="uploadCanvasBackgroundImage(event)">
+                <select id="backgroundMode" onchange="changeBackgroundMode(event)">
+                    <option value="cover">Cover</option>
+                    <option value="center">Center</option>
+                </select>
+                <button id="defaultBackgroundButton" onclick="setDefaultBackground()">Default Background</button>
+<span style="display: flex; align-items: center; gap: 5px;">
+    <input type="checkbox" id="toggleGridMenu" onchange="toggleGrid()">
+    <label for="toggleGridMenu">Toggle Grid</label>
+</span>
+
+<span style="display: flex; align-items: center; gap: 5px;">
+    <input type="checkbox" id="toggleCanvasLabel" onchange="toggleCanvasLabel()">
+    <label for="toggleCanvasLabel">Canvas Label</label>
+</span>
+
+
+
+
+<label for="togglePlusSign">Show Non-empty Canvas Sign ⮟</label>
+<input type="checkbox" id="togglePlusSign" onchange="togglePlusSign()">
+<!-- AUTOSAVE UI -->
+<span>Choose Autosave Folder</span>
+<button onclick="selectAutosaveFile()">Browse</button>
+<span id="autosavePath" style="font-size: 12px;"></span>
+<label for="autosaveInterval">Autosave Interval (minutes)</label>
+<input type="number" id="autosaveInterval" min="1" value="2" style="width: 60px; margin-bottom: 10px;">
+
+<button id="toggleAutosaveButton" onclick="toggleAutosave()" style="background-color: grey; color: white;">Autosave: OFF</button>
+
+<div id="autosaveStatus" style="margin-top: 10px; display: flex; align-items: center; gap: 10px;">
+  <svg width="24" height="24">
+    <circle id="autosaveRing" cx="12" cy="12" r="10" stroke="#ccc" stroke-width="2" fill="none"/>
+    <circle id="autosaveProgress" cx="12" cy="12" r="10" stroke="blue" stroke-width="2" fill="none"
+            stroke-dasharray="62.8" stroke-dashoffset="62.8" transform="rotate(-90 12 12)" />
+  </svg>
+  <span id="autosaveMessage" style="font-size: 12px; color: grey;">Autosave in 00:00</span>
+</div>
+<div id="lastAutosave" style="font-size: 11px; color: #777; margin-top: 2px;">Last saved: never</div>
+
+
+            </div>
+        </div>
+    </div>
+	
+    <div class="workspace">
+        <div class="resizer" id="resizer"></div>
+        <div id="paper">
+</div>
+    </div>
+    <div id="contextMenu" class="context-menu">
+    <ul>
+        <li onclick="editNodeName()">Edit Name</li>
+        <li onclick="changeNodeColor()">Change Color</li>
+        <li onclick="resizeNode()">Resize</li> <!-- Updated Resize Option -->
+        <li onclick="uploadNodeImage()">Upload Image</li>
+        <li onclick="rotateNodeIcon()">Rotate Icon</li>
+        <li onclick="copyNode()">Copy</li>
+        <li onclick="openEquationsEditor()">Equations Editor</li>
+        <li onclick="openAnimationPopup()">Create Animation</li>
+<li onclick="toggleLockMove()">Lock/Unlock Move</li>
+        <li onclick="showNotePopup()">Note</li>
+        <li onclick="deleteNode()">Delete Node</li>
+    </ul>
+</div>
+
+<div id="notePopup" class="not-popup">
+    <div class="draggable-header">
+        <span>Node Note</span>
+        <span class="close-button" onclick="closeNotePopup()">&times;</span>
+    </div>
+    <div class="not-popup-content">
+        <textarea id="noteEditor" class="form-control"></textarea>
+        <input type="file" id="noteimageUpload" accept="image/*" onchange="insertImage(event)">
+        <div id="imagePreviewContainer"></div>
+        <button class="btn-primary" onclick="saveNote()">Save Note</button>
+    </div>
+</div>
+
+<div id="blankContextMenu" class="context-menu">
+        <ul>
+       <li>Create Line</li>
+        </ul>
+    </div>
+
+<div id="lineContextMenu" class="context-menu">
+    <ul>
+        <li onclick="changeDrawnLineColor()">Change Line Color</li>
+        <li class="submenu">
+            Line Type
+            <ul class="submenu-content">
+                <li onclick="changeDrawnLineType('solid')">
+                    <span style="border-bottom: 2px solid black;">Solid Line</span>
+                </li>
+                <li onclick="changeDrawnLineType('dashed')">
+                    <span style="border-bottom: 2px dashed black;">Dashed Line</span>
+                </li>
+                <li onclick="changeDrawnLineType('dotted')">
+                    <span style="border-bottom: 2px dotted black;">Dotted Line</span>
+                </li>
+                <li onclick="changeDrawnLineType('arrow')">
+                    <span style="position: relative; display: inline-block;">
+                        Arrow Line
+                        <svg height="10" width="30" style="position: absolute; bottom: -5px; left: 0;">
+                            <line x1="0" y1="5" x2="20" y2="5" style="stroke:black;stroke-width:2" />
+                            <polygon points="20,0 30,5 20,10" style="fill:black;" />
+                        </svg>
+                    </span>
+                </li>
+                <li onclick="changeDrawnLineType('twoArrows')">
+                    <span style="position: relative; display: inline-block;">
+                        Two Arrows Line
+                        <svg height="10" width="50" style="position: absolute; bottom: -5px; left: 0;">
+                            <polygon points="0,5 10,0 10,10" style="fill:black;" />
+                            <line x1="10" y1="5" x2="40" y2="5" style="stroke:black;stroke-width:2" />
+                            <polygon points="40,0 50,5 40,10" style="fill:black;" />
+                        </svg>
+                    </span>
+                </li>
+            </ul>
+        </li>
+        <li onclick="editLineProperties()">Edit Properties</li>
+        <li onclick="deleteDrawnLine()">Delete Line</li>
+    </ul>
+</div>
+
+
+<div id="editLinePropertiesPopup" class="popup">
+    <div class="popup-content">
+        <span class="close-button" onclick="toggleEditLinePropertiesPopup()">&times;</span>
+        <h2>Edit Line Properties</h2>
+
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+            <label for="lineWidth" style="min-width: 150px;">Width:</label>
+            <input type="number" id="lineWidth" class="form-control">
+        </div>
+
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+            <label for="lineName" style="min-width: 150px;">Name:</label>
+            <input type="text" id="lineName" class="form-control">
+        </div>
+
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+            <label for="lineFontSize" style="min-width: 150px;">Font Size:</label>
+            <input type="number" id="lineFontSize" class="form-control">
+        </div>
+
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+            <label for="lineFontColor" style="min-width: 150px;">Font Color:</label>
+            <input type="color" id="lineFontColor" class="form-control">
+        </div>
+
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+            <label for="lineFontBold" style="min-width: 150px;">Bold:</label>
+            <input type="checkbox" id="lineFontBold">
+        </div>
+
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+            <label for="lineFontType" style="min-width: 150px;">Font Type:</label>
+            <select id="lineFontType" class="form-control">
+                <option value="Arial">Arial</option>
+                <option value="Verdana">Verdana</option>
+                <option value="Times New Roman">Times New Roman</option>
+            </select>
+        </div>
+
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+            <label for="lineNameBackgroundColor" style="min-width: 150px;">Name Background Color:</label>
+            <input type="color" id="lineNameBackgroundColor" class="form-control">
+        </div>
+
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+            <label for="removeNameBackground" style="min-width: 150px;">Remove Background:</label>
+            <input type="checkbox" id="removeNameBackground">
+        </div>
+
+        <button class="btn btn-primary" onclick="applyLineProperties()">Finish</button>
+    </div>
+</div>
+
+
+<div id="editNodePropertiesPopup" class="popup">
+    <div class="popup-content">
+        <span class="close-button" onclick="toggleEditNodePropertiesPopup()">&times;</span>
+        <h2>Edit Node Properties</h2>
+
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+            <label for="nodeName" style="min-width: 150px;">Name:</label>
+            <input type="text" id="nodeName" class="form-control">
+        </div>
+
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
+            <label for="nodeInvisibleCheckbox" style="min-width: 150px;">Invisible:</label>
+            <input type="checkbox" id="nodeInvisibleCheckbox">
+        </div>
+
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+            <label for="nodeFontSize" style="min-width: 150px;">Font Size:</label>
+            <input type="number" id="nodeFontSize" class="form-control">
+        </div>
+
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+            <label for="nodeFontColor" style="min-width: 150px;">Font Color:</label>
+            <input type="color" id="nodeFontColor" class="form-control">
+        </div>
+
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+            <label for="nodeFontBold" style="min-width: 150px;">Bold:</label>
+            <input type="checkbox" id="nodeFontBold">
+        </div>
+
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+            <label for="nodeFontType" style="min-width: 150px;">Font Type:</label>
+            <select id="nodeFontType" class="form-control">
+                <option value="Arial">Arial</option>
+                <option value="Verdana">Verdana</option>
+                <option value="Times New Roman">Times New Roman</option>
+            </select>
+        </div>
+
+        <button class="btn btn-primary" onclick="applyNodeProperties()">Finish</button>
+    </div>
+</div>
+
+
+<div id="instructionsPopup" class="popup-instructions">
+    <div class="popup-instructions-contentt">
+        <span class="close-button" onclick="toggleInstructionsPopup()">&times;</span>
+	<p>NODEα is an interactive tool designed to help users visualize and manage complex supply chain networks. Users can create and customize nodes representing different elements of their supply chain, such as suppliers, manufacturers, and distributors. The visualizer allows users to add, link, resize, and rename nodes, upload images, and toggling grid visibility. This intuitive interface provides a clear and dynamic representation of the supply chain, aiding in better understanding of supply chain complexities.</p>       
+	<h2>Instructions</h2>
+        <ul>
+            <li><b>Add a node:</b> Drag an icon from the bottom container and drop it onto the workspace.</li>
+            <li><b>Create a link between nodes:</b> Click on one node, then click on another node to create a link.</li>
+            <li><b>Change node name:</b> Right-click on a node, select "Change Name" and enter the new name.</li>
+            <li><b>Resize node:</b> Right-click on a node, select "Resize" and enter the new dimensions.</li>
+            <li><b>Upload node image:</b> Right-click on a node, select "Upload Image" and choose an image file.</li>
+            <li><b>Copy and paste node:</b> Right-click on a node and select "copy". press <code> Ctrl + V</code> on your keyboard.</li>
+            <li><b>Add a note to the node:</b> Right-click on a node and select "Note". Notes are saved and can be edited and saved again.</li>
+            <li><b>Delete node:</b> Right-click on a node and select "Delete Node".</li>
+            <li><b>Change link name:</b> Right-click on a link, select "Add Name" and enter the new name.</li>
+            <li><b>Change link color:</b> Right-click on a link, select "Change Line Color" and choose a color.</li>
+            <li><b>Change link type:</b> Right-click on a link, select "Line Type" and choose a type.</li>
+            <li><b>Delete link:</b> Right-click on a link and select "Delete Line".</li>
+            <li><b>Creating a line:</b> Right-click on an empty area of the canvas and select the "Create Line" option. Additionally, users can add and adjust control points on the lines for better customization by dragging the control points to the desired positions.</li>
+            <li><b>Adding and editing text:</b> To add text to your canvas, press <code>Ctrl + A</code> on your keyboard. To edit an existing text element, right-click on the text to open a context menu and select "Edit". </li>
+            <li><b>Reset graph:</b> Click the "Reset" button.</li>
+            <li><b>Toggle grid:</b> Click the "Settings" button, check or uncheck "Toggle Grid".</li>
+            <li><b>Change canvas background color:</b> Click the "Settings" button, select a color from "Canvas Background Color".</li>
+            <li><b>Upload canvas background image:</b> Click the "Settings" button, select an image file from "Upload Background Image".</li>
+            <li><b>Change background mode:</b> Click the "Settings" button, select a mode from "Background Mode."</li>
+            <li><b>Set default background:</b> Click the "Settings" button, click "Default Background".</li>
+            <li><b>Open subcanvas:</b> Double-click on a node to open its subcanvas.</li>
+            <li><b>Navigate to main canvas:</b> Click the "Back" button to return to the main canvas.</li>
+            <li><b>Save graph:</b> Click the "Save Graph" button.Users can customize the grid and background for both the main canvas and sub-canvases, and these settings can be saved along with the graph.</li>
+            <li><b>Upload graph:</b> Click the "Upload Graph" button and choose a graph file.</li>
+            <li><b>View hierarchical nodes diagram:</b> Click the "Nodes Hierarchical Diagram" button. The Hierarchical Nodes Diagram feature provides a structured visualization of the supply chain network in a tree-like format. This diagram represents the relationships between nodes in different tiers, making it easier to understand the hierarchical structure of the network. Users can open a separate window to view the hierarchical diagram, which visually organizes nodes from the main canvas and their sub-canvases, offering a clear overview of the supply chain's hierarchy. This feature is particularly useful for identifying dependencies and bottlenecks in supply chains. Click on any node in the hierarchical diagram to jump directly to its canvas. IMPORTANT: Users have to switch canvases to refelect latest changes on the diagram!</li>
+            <li><b>Calculations Editor:</b> To define constants, variables, and equations for a node, right-click on the node and select "Equations Editor". In the editor, you can write and save equations. You can also choose to visualize the values of these equations on the canvas by checking the "Visualize" checkbox. This will create a small card under the node displaying the equation and its value.</li>
+            <li><b>Sensitivity Analysis:</b> Click the "Sensitivity" button to open the sensitivity toolbar. Select a function from the drop-down list, enter a new value, and click "Update" to apply the changes. To restore original values, click "Restore Values", then update. Closing the toolbar without restoring values will cause the initial data before sensitivity analysis to be lost.</li>
+            <li><b>Stats window:</b> Click the "Stats" button in the toolbar to open the stats popup window, which provides real-time statistics about your current graph. The stats include the total number of nodes and connections created across all canvases, the node with the most connections, the node with the most outgoing connections, the number of unlinked nodes, and the node with the most incoming connections. A timer tracks how long you have been working on the current model. Click "Close" to exit the stats window.</li>	  
+            <li><b>Add animation:</b> To add animation to a node in your graph, first, ensure that the node and equation are selected. Use the "Create Animation" popup to set the desired conditions and animation type, such as text appearance or quantity visualization. Specify the trigger condition and values, and define the text to display if the condition is met. For quantity animations, tick it to animate based on the equation's value. The animations will dynamically update and follow the node's movement, ensuring a responsive and interactive visual experience.</li>
+            <li><b>Deletion of equations and animations:</b> Deleting one function will automatically delete all other functions that reference it, ensuring that there are no orphaned or undefined references within the graph. Deleting a function will also remove any animations associated with it, ensuring that the visual elements remain consistent and accurate without any lingering animations triggered by the deleted function.</li>
+            <li><b>Refresh random numbers:</b> Press <kbd>CTRL</kbd> + <kbd>F9</kbd> to regenerate all random numbers used in equations.</li>
+            <li><b>Search:</b> Use the search bar in the toolbar to locate nodes and text elements by name.</li>
+            <li><b>Equation diagram:</b> Click the equation tree button to view a visual dependency diagram of all equations.</li>
+            <li><b>Autosave:</b> Enable autosave from the settings menu, choose a folder and interval, and your graph will be saved automatically at regular intervals. Can be accessed from Settings. Please be noted that autosave state is lost when close the page, and it can be activated again manually</li>
+            <li><b>Clickable breadcrumb:</b> Use the breadcrumb navigation bar to move between canvases by clicking on the names.</li>
+           <li><b>Lock node:</b> Right click on a node then select lock. repeat for unlocking. Locking a node prevents its movement</li>
+           <li><b>Label canvas:</b> Use the canvas label tool to assign a meaningful name to each canvas for easier reference. It can be activated from Settings</li>
+           <li><b>Show non-empty sign:</b> A small icon appears on nodes that contain equations, tables, or other data to indicate they are not empty. It can be activated from Settings</li>
+           <li><b>Credit:</b> This tool is designed by Dr. Nizar Shbikat from the Logistics Department at the German Jordanian University.</li>
+</ul>
+    </div>
+</div>
+
+<div id="copyPopup" class="copy-popup">Node copied!</div>
+<div id="textPopup" class="popup">
+    <span class="close-button" onclick="toggleTextPopup()">&times;</span>
+    <h2>Add/Edit Text</h2>
+    <div class="form-group">
+        <label for="textContent">Text:</label>
+        <textarea id="textContent" class="form-control"></textarea>
+    </div>
+    <div class="form-group">
+        <label for="fontSize">Font Size:</label>
+        <input type="number" id="fontSize" class="form-control" value="16">
+    </div>
+    <div class="form-group">
+        <label for="fontColor">Font Color:</label>
+        <input type="color" id="fontColor" class="form-control" value="#000000">
+    </div>
+    <div class="form-group">
+        <label for="fontType">Font Type:</label>
+        <select id="fontType" class="form-control">
+            <option value="Arial">Arial</option>
+            <option value="Verdana">Verdana</option>
+            <option value="Times New Roman">Times New Roman</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="removeBackground"><input type="checkbox" id="removeBackground"> Remove Background:</label>
+    </div>
+    <div class="form-group">
+        <label for="borderLine"><input type="checkbox" id="borderLine"> Border Line:</label>
+    </div>
+    <div class="form-group">
+        <label for="backgroundColor">Background Color:</label>
+        <input type="color" id="backgroundColor" class="form-control" value="#FFFFFF">
+    </div>
+    <div class="form-group">
+        <label for="bold"><input type="checkbox" id="bold"> Bold:</label>
+    </div>
+    <div class="form-group">
+        <label for="underline"><input type="checkbox" id="underline"> Underline:</label>
+    </div>
+    <button class="btn btn-primary" onclick="applyTextProperties()">OK</button>
+</div>
+
+
+<div id="equationPopup" style="display: none;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+        <h2 style="margin: 0; flex-grow: 1;">Equations Editor</h2>
+        <div style="display: flex; align-items: center; gap: 20px; flex-shrink: 0;">
+            <button id="equationsTreeButton" title="Show Equations Tree" style="padding: 0; border: none; background: none;">
+                <img src="tree-icon.png" alt="Equations Tree" style="width: 24px; height: 24px;">
+            </button>
+            <button id="viewGlobalEquationsButton" title="View Global Equations" style="padding: 0; border: none; background: none;">
+                <img id="viewGlobalEquationsIcon" src="./equations.png" alt="View Global Equations" style="width: 24px; height: 24px;">
+            </button>
+        </div>
+    </div>
+    <button id="functionsButton" onclick="toggleFunctionsTable()">Show Mathematical Functions</button>
+    <div id="functionsTableContainer">
+        <table id="functionsTable">
+            <thead>
+                <tr>
+                    <th>Function</th>
+                    <th>Usage</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>pow(base, exponent)</td>
+                    <td>Returns base raised to the power of exponent</td>
+                </tr>
+                <tr>
+                    <td>sqrt(x)</td>
+                    <td>Returns the square root of x</td>
+                </tr>
+                <tr>
+                    <td>exp(x)</td>
+                    <td>Returns e raised to the power of x</td>
+                </tr>
+                <tr>
+                    <td>log(x)</td>
+                    <td>Returns the natural logarithm of x</td>
+                </tr>
+                <tr>
+                    <td>log10(x)</td>
+                    <td>Returns the base-10 logarithm of x</td>
+                </tr>
+                <tr>
+                    <td>log2(x)</td>
+                    <td>Returns the base-2 logarithm of x</td>
+                </tr>
+                <tr>
+                    <td>ceil(x)</td>
+                    <td>Returns x rounded up to the nearest integer</td>
+                </tr>
+                <tr>
+                    <td>floor(x)</td>
+                    <td>Returns x rounded down to the nearest integer</td>
+                </tr>
+                <tr>
+                    <td>round(x)</td>
+                    <td>Returns x rounded to the nearest integer</td>
+                </tr>
+                <tr>
+                    <td>mean([a, b, c, ...])</td>
+                    <td>Returns the mean of the given array</td>
+                </tr>
+                <tr>
+                    <td>median([a, b, c, ...])</td>
+                    <td>Returns the median of the given array</td>
+                </tr>
+                <tr>
+                    <td>mode([a, b, c, ...])</td>
+                    <td>Returns the mode of the given array</td>
+                </tr>
+                <tr>
+                    <td>std([a, b, c, ...])</td>
+                    <td>Returns the standard deviation of the given array</td>
+                </tr>
+                <tr>
+                    <td>var([a, b, c, ...])</td>
+                    <td>Returns the variance of the given array</td>
+                </tr>
+                <tr>
+                    <td>sum([a, b, c, ...])</td>
+                    <td>Returns the sum of the given array</td>
+                </tr>
+                <tr>
+                    <td>prod([a, b, c, ...])</td>
+                    <td>Returns the product of the given array</td>
+                </tr>
+                <tr>
+                    <td>min([a, b, c, ...])</td>
+                    <td>Returns the minimum value of the given array</td>
+                </tr>
+                <tr>
+                    <td>max([a, b, c, ...])</td>
+                    <td>Returns the maximum value of the given array</td>
+                </tr>
+                <tr>
+                    <td>quantileSeq([a, b, c, ...], k)</td>
+                    <td>Returns the k-th quantile of the given array</td>
+                </tr>
+                <tr>
+                    <td>random()</td>
+                    <td>Returns a random number between 0 and 1</td>
+                </tr>
+                <tr>
+                    <td>randomInt(min, max)</td>
+                    <td>Returns a random integer between min and max</td>
+                </tr>
+                <tr>
+                     <td>pickRandom(array)</td>
+                     <td>Returns a random element from the given array.<br>
+                     <strong>Example:</strong><br>
+                      To select a random month from a list of months, you can write:
+                     <pre>E = pickRandom(['January', 'February', 'March'])</pre>
+                      This will randomly set <code>E</code> to one of the values 'January', 'February', or 'March'.<br>
+                     <strong>Note:</strong> Ensure that each string is enclosed in quotes, and the strings are separated by commas within the square brackets.
+                </td>
+
+  <tr>
+    <td>if(condition, trueValue, falseValue)</td>
+    <td>
+        Evaluates the condition and returns the trueValue if the condition is true, otherwise returns the falseValue.<br>
+        <strong>Example:</strong><br>
+        To set a variable based on a condition, you can write:
+        <pre>D = if(A > 10, 'High', 'Low') or D = if(A > 10, 'High', if(A > 5, 'Medium', 'Low'))</pre>
+        This will set <code>D</code> to 'High' if <code>A</code> is greater than 10, otherwise it will set <code>D</code> to 'Low'.<br>
+        <strong>Example with equality:</strong><br>
+        To set a variable based on an equality condition, you can write:
+        <pre>D = if(equal(A, 10), 'Equal', 'Not Equal')</pre>
+        This will set <code>D</code> to 'Equal' if <code>A</code> is equal to 10, otherwise it will set <code>D</code> to 'Not Equal'.<br>
+        <strong>Note:</strong> Ensure that the condition is a valid logical expression, and trueValue and falseValue can be any valid expressions or constants.
+    </td>
+</tr>
+
+<tr>
+    <td>table("tableName", "columnTitle", rowNumber)</td>
+    <td>
+        Retrieves the value from a specific cell in a table.<br>
+        <strong>Parameters:</strong><br>
+        - <strong>tableName</strong>: The name of the table as a string.<br>
+        - <strong>columnTitle</strong>: The title of the column as a string.<br>
+        - <strong>rowNumber</strong>: The row number as an integer (1-based index).<br>
+        <strong>Example:</strong><br>
+        To retrieve the value from the first row of the "Title 2" column in the table named "TableA", you can write:
+        <pre>x = table("TableA", "Title 2", 1)</pre>
+        This will set <code>x</code> to the value located in the first row of the "Title 2" column in "TableA".<br>
+        <strong>Note:</strong> Ensure that the <code>tableName</code> and <code>columnTitle</code> are valid strings corresponding to the existing table and its columns, and <code>rowNumber</code> is a valid integer within the range of the table's row indices.
+    </td>
+</tr>
+            </tbody>
+        </table>
+    </div>
+
+<div id="equationEditorContainer">
+        <h3>Equation Editor</h3>
+        <textarea id="equationInput" rows="5" cols="50" oninput="showSuggestions(event)"></textarea>
+        <div id="autocompleteContainer" class="autocomplete-suggestions"></div>
+        <button id="saveButton" onclick="saveEquations()">Save</button>
+        <button id="createTableButton">Create Table</button>
+    </div>
+    <div id="savedEquationsContainer">
+        <h3>Saved Equations</h3>
+        <table id="equationsTable">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Expression</th>
+                    <th>Value</th>
+                    <th>Actions</th>
+                    <th>Visualize</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <div id="closeButtonContainer">
+        <button id="closeButton" onclick="closeEquationPopup()">Close</button>
+    </div>
+</div>
+<div id="visualizationCardsContainer" style="display: none;"></div>
+
+
+<div id="tableCreationPopup" class="popup">
+    <div class="popup-content">
+        <span class="close-button" onclick="toggleTableCreationPopup()">&times;</span>
+        <h2>Create Table</h2>
+        <label for="tableName">Table Name:</label>
+        <input type="text" id="tableName">
+        <label for="numRows">Number of Rows:</label>
+        <input type="number" id="numRows" min="1">
+        <label for="numCols">Number of Columns:</label>
+        <input type="number" id="numCols" min="1">
+        <button id="createTableButtonPopup">Create</button>
+        <div id="tableContainer" class="scrollable-table"></div>
+        <button id="saveTableButton">Save Table</button>
+        <h3>Saved Tables</h3>
+        <div id="savedTablesContainer" class="scrollable-table"></div>
+        <button id="closeTableWindowButton" onclick="toggleTableCreationPopup()">Close</button>
+    </div>
+</div>
+
+<div id="globalEquationsModalSpecial" class="modal-special">
+    <div class="modal-content-special">
+        <span class="close-special">&times;</span>
+        <h2>Global Equations</h2>
+        <ul id="globalEquationsListSpecial"></ul>
+    </div>
+</div>
+
+<!-- Sensitivity Toolbar -->
+<div id="sensitivityToolbar" class="sensitivity-toolbar" style="display: none;">
+    <h2>Sensitivity Analysis</h2>
+    <label for="functionSelect">Select Function:</label>
+    <select id="functionSelect">
+        <!-- Options will be populated dynamically -->
+    </select>
+    <label for="newValue">New Value:</label>
+    <input type="text" id="newValue" />
+    <label for="showExpressionCheckbox">
+        <input type="checkbox" id="showExpressionCheckbox" onchange="toggleShowExpression()"> Show Expression
+    </label>
+    <button id="updateFunctionButton" class="update-button">Update</button>
+    <button id="restoreValuesButton" class="update-button">Restore Values</button>
+</div>
+
+<!-- Stats Panel -->
+<div id="statsPanel" class="stats-panel" style="display: none;">
+    <h2>Canvas Graph Statistics</h2>
+    <ul>
+        <li>Total Number of Nodes: <span id="totalNodes"></span></li>
+        <li>Total Number of Connections: <span id="totalConnections"></span></li>
+        <li>Node with Most Connections: <span id="mostConnectionsNode"></span></li>
+        <li>Node with Most Outgoing Connections: <span id="mostOutgoingConnectionsNode"></span></li>
+        <li>Node with Most Incoming Connections: <span id="mostIncomingConnectionsNode"></span></li>
+        <li>Unlinked Nodes: <span id="unlinkedNodes"></span></li>
+        <li>Nodes Named "node": <span id="nodesNamedNode"></span></li>
+        <li>Isolated Functions: <span id="isolatedFunctions"></span></li>
+        <li>
+            Current Zoom Scale: <span id="currentZoomScale"></span>
+            <button id="resetZoomButton" class="small-button">Reset to 100%</button>
+        </li> 
+        <li>
+            Session Time: <span id="sessionTime">00:00:00</span>
+            <button id="startTimerButton" class="small-button">Start</button>
+            <button id="pauseTimerButton" class="small-button">Pause</button>
+            <button id="resumeTimerButton" class="small-button" style="display:none;">Resume</button>
+            <button id="resetTimerButton" class="small-button">Reset</button>
+        </li>
+    </ul>
+    <button id="closeStatsButton" class="button">Close</button>
+</div>
+
+<div id="animationPopup" class="popup animation-popup">
+    <div class="popup-content">
+        <span class="close" onclick="toggleAnimationPopup()">&times;</span>
+        <h2>Create Animation</h2>
+        
+        <label for="selectEquation">Select Equation:</label>
+        <select id="selectEquation"></select>
+
+        <label for="triggerCondition">Condition:</label>
+        <select id="triggerCondition">
+            <option value="<">Less than</option>
+            <option value=">">Greater than</option>
+            <option value="<=">Less than or equal to</option>
+            <option value=">=">Greater than or equal to</option>
+            <option value="==">Equal to</option>
+            <option value="!=">Not equal to</option>
+        </select>
+
+        <label for="triggerValue">Enter Value:</label>
+        <input type="number" id="triggerValue" placeholder="Enter value">
+        
+        <label for="triggerTextInput">Text to Show if Condition Met:</label>
+        <input type="text" id="triggerTextInput" placeholder="Enter text">
+
+        <label for="animateQuantityCheckbox">
+            <input type="checkbox" id="animateQuantityCheckbox"> Animate Quantity
+        </label>
+        <button id="deleteAnimationButton" onclick="deleteAnimation()">Delete Animation</button>
+
+        <button onclick="createAnimationObject()">Create</button>
+    </div>
+</div>
+
+<div id="textContextMenu" class="context-menu">
+    <ul>
+        <li onclick="editText()">Edit</li>
+        <li onclick="deleteText()">Delete</li>
+    </ul>
+</div>
+
+<div class="scroll-container">
+    <div class="bottom-container" id="bottomContainer">
+        <!-- Icons will be added here dynamically -->
+    </div>
+</div>
+
+<div id="consoleErrorPopup" class="console-error-popup">
+    <button onclick="closeErrorPopup()">×</button>
+    <p id="consoleErrorMessage"></p>
+</div>
+
+    <input type="file" id="imageUpload" style="display: none;" accept="image/*" onchange="handleImageUpload(event)">
+    <input type="color" id="colorPicker" style="display: none;" onchange="handleColorChange(event)">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/10.6.4/math.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/backbone.js/1.4.0/backbone-min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jointjs/3.4.4/joint.min.js"></script>
+    <script src="scripts.js"></script>
+</body>
+</html>
